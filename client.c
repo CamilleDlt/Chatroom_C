@@ -27,7 +27,7 @@ void clear_line() {
 void set_non_canonical_mode() {
     struct termios tattr;
     tcgetattr(STDIN_FILENO, &tattr);
-    tattr.c_lflag &= ~(ICANON | ECHO); // Désactiver mode canonique et écho
+    tattr.c_lflag &= ~(ICANON | ECHO); // Désactiver mode canonique et écho (=plus de regroupement par ligne et l'écriture du caractère n'est plus automatique)
     tattr.c_cc[VMIN] = 1;             // Lire un caractère à la fois
     tattr.c_cc[VTIME] = 0;            // Pas de délai
     tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
