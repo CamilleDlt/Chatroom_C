@@ -9,6 +9,7 @@
 
 #define MAX_USERS 10
 #define MAX_LEN 1000
+#define MAX_STORED_MESSAGES 50
 
 typedef struct User {
     char nom[100];
@@ -19,7 +20,12 @@ User connected_users[MAX_USERS];
 int user_count = 0;
 pthread_mutex_t user_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-//Nouvelle utilisateur connecté
+// Tableau pour stocker les 50 derniers messages
+char last_messages[MAX_STORED_MESSAGES][MAX_LEN];
+int last_message_index = 0;
+pthread_mutex_t messages_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex pour protéger l'accès aux messages
+
+//Nouvel utilisateur connecté
 int add_user(const User *user) {
     pthread_mutex_lock(&user_mutex);
     if (user_count >= MAX_USERS) {
@@ -44,8 +50,19 @@ void delete_user(const int socket) {
     pthread_mutex_unlock(&user_mutex);
 }
 
-// Fonction pour diffuser un message à tous les utilisateurs
+// Fonction pour stocker un message dans le tableau global
+void store_message(const char *message) {
+    pthread_mutex_lock(&messages_mutex);
+    snprintf(last_messages[last_message_index], MAX_LEN, "%s", message);
+    last_message_index = (last_message_index + 1) % MAX_STORED_MESSAGES;
+    pthread_mutex_unlock(&messages_mutex);
+}
+
+// Fonction pour diffuser un message à tous les utilisateurs et le stocker
 void afficher_message(const char *message) {
+    // Stockage du message avant la diffusion
+    store_message(message);
+
     pthread_mutex_lock(&user_mutex);
     for (int i = 0; i < user_count; ++i) {
         if (send(connected_users[i].socket, message, strlen(message), 0) < 0) {
@@ -69,7 +86,7 @@ void *client_handler(void *arg) {
 
     //Si trop de monde
     if (add_user(&user) < 0) {
-        printf("Server is full, connection refused fo r %s\n", user.nom);
+        printf("Server is full, connection refused for %s\n", user.nom);
         close(socketClient);
         pthread_exit(NULL);
     }
@@ -94,7 +111,7 @@ void *client_handler(void *arg) {
 
         printf("%s\n", formatted_message);
 
-        // Diffuser le message à tous les utilisateurs
+        // Diffuser le message à tous les utilisateurs et le stocker
         afficher_message(formatted_message);
     }
 
@@ -135,7 +152,8 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    printf("===== Server is open on port 300001 ====\n");
+    printf("===== Server is open on port 30001 =====\n");
+    printf("Waiting for connections\n");
 
     while (1) {
         struct sockaddr_in addrClient;
@@ -154,4 +172,7 @@ int main() {
         pthread_create(&thread, NULL, client_handler, arg);
         pthread_detach(thread);
     }
+
+    close(socketServer);
+    return 0;
 }
