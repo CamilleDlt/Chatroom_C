@@ -135,8 +135,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    printf("===== Server is open on port 300001 ====");
-    printf("Waiting for connections\n");
+    printf("===== Server is open on port 300001 ====\n");
 
     while (1) {
         struct sockaddr_in addrClient;
