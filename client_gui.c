@@ -11,10 +11,17 @@
 #define MAX_LEN 1000
 #define MAX_MESSAGES 100
 #define MAX_MESSAGE_LENGTH 1000
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
-#define INPUT_HEIGHT 40
+#define SCREEN_WIDTH 900
+#define SCREEN_HEIGHT 1000
+#define INPUT_HEIGHT 50
 #define CHAT_MARGIN 10
+#define FONT_SIZE 30
+
+double lastBackspaceTime = 0;
+double backspaceHoldStartTime = 0;
+bool isBackspaceHeld = false;
+const double BACKSPACE_DELAY = 0.5;      // Initial delay before repeat starts (in seconds)
+const double BACKSPACE_REPEAT = 0.03;
 
 typedef struct User {
     char name[100];
@@ -101,6 +108,7 @@ void *listen_to_server() {
 
 // Function to handle text input
 void HandleTextInput() {
+    const double currentTime = GetTime();
 
     // Handling regular character input
     int key = GetCharPressed(); // retrieves user input
@@ -117,8 +125,34 @@ void HandleTextInput() {
 
     // Handling backspace (deleting a character)
     if (IsKeyPressed(KEY_BACKSPACE) && inputLength > 0) {
-        inputLength--;
-        inputBuffer[inputLength] = '\0';
+        if (inputLength > 0) {
+            inputLength--;
+            inputBuffer[inputLength] = '\0';
+        }
+        isBackspaceHeld = true;
+        backspaceHoldStartTime = currentTime;
+        lastBackspaceTime = currentTime;
+
+    } else if (IsKeyDown(KEY_BACKSPACE)) {
+        // If backspace is held down
+        if (isBackspaceHeld) {
+            const double timeHeld = currentTime - backspaceHoldStartTime;
+
+            // After initial delay, start repeating
+            if (timeHeld > BACKSPACE_DELAY) {
+                // Check if it's time for another deletion
+                if (currentTime - lastBackspaceTime >= BACKSPACE_REPEAT) {
+                    if (inputLength > 0) {
+                        inputLength--;
+                        inputBuffer[inputLength] = '\0';
+                        lastBackspaceTime = currentTime;
+                    }
+                }
+            }
+        }
+        else {
+            isBackspaceHeld = false;
+        }
     }
 
     // Handling enter (sending a message)
@@ -225,7 +259,7 @@ int main() {
             // Different color depending on whom the message is from.
             const Color msgColor = messages[i].isOwn ? SKYBLUE : LIGHTGRAY;
 
-            const float textWidth = (float) MeasureText(messages[i].text, 20);
+            const float textWidth = (float) MeasureText(messages[i].text, FONT_SIZE);
 
             // Right align own messages and left align others' messages
             const float x = messages[i].isOwn ? SCREEN_WIDTH - textWidth - CHAT_MARGIN * 2 : CHAT_MARGIN;
@@ -234,7 +268,7 @@ int main() {
             DrawRectangle( (int)(x - 5), (int)(y - 25), (int)(textWidth + 10), 30, msgColor);
 
             // Drawing message content (within the bubble)
-            DrawText(messages[i].text, (int) x, (int) y - 20, 20, BLACK);
+            DrawText(messages[i].text, (int) x, (int) y - 20, 30, BLACK);
 
             y -= 35; // Moves up for next message
             if (y < -30) break;  // Stop if message isn't in view
@@ -245,7 +279,7 @@ int main() {
         // Draw input box
         DrawRectangleRec(inputBox, LIGHTGRAY); // box background
         DrawRectangleLinesEx(inputBox, 1, DARKGRAY); // box border
-        DrawText(inputBuffer, (int) inputTextPosition.x, (int) inputTextPosition.y, 20, BLACK); // box text
+        DrawText(inputBuffer, (int) inputTextPosition.x, (int) inputTextPosition.y, FONT_SIZE, BLACK); // box text
 
         // End the drawing phase
         EndDrawing();
