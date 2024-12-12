@@ -118,7 +118,7 @@ void *client_handler(void *arg) {
     printf("\033[31m%s disconnected.\033[0m\n", user.nom);
     //Affichage des messages de déconnection 
     char disconnection_formatted_message[MAX_LEN];
-    snprintf(disconnection_formatted_message, sizeof(disconnection_formatted_message), "\033[31m%s : %s disconnected.\033[0m", "SERVEUR", user.nom);
+    snprintf(disconnection_formatted_message, sizeof(disconnection_formatted_message), "\033[31m%s : %s disconnected.\033[0m", "SERVER", user.nom);
     afficher_message(disconnection_formatted_message);
 
     delete_user(socketClient);
@@ -153,7 +153,6 @@ int main() {
     }
 
     printf("===== Server is open on port 30001 =====\n");
-    printf("Waiting for connections\n");
 
     while (1) {
         struct sockaddr_in addrClient;
@@ -172,7 +171,4 @@ int main() {
         pthread_create(&thread, NULL, client_handler, arg);
         pthread_detach(thread);
     }
-
-    close(socketServer);
-    return 0;
 }
