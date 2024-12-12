@@ -32,7 +32,7 @@ int add_user(const User *user) {
 }
 
 //Déconnexion d'un utilisateur
-void delete_user(int socket) {
+void delete_user(const int socket) {
     pthread_mutex_lock(&user_mutex);
     for (int i = 0; i < user_count; ++i) {
         if (connected_users[i].socket == socket) {
@@ -49,14 +49,14 @@ void afficher_message(const char *message) {
     pthread_mutex_lock(&user_mutex);
     for (int i = 0; i < user_count; ++i) {
         if (send(connected_users[i].socket, message, strlen(message), 0) < 0) {
-            perror("Erreur d'envoi au client");
+            perror("Error sending to the client");
         }
     }
     pthread_mutex_unlock(&user_mutex);
 }
 
 void *client_handler(void *arg) {
-    int socketClient = *(int *)arg;
+    const int socketClient = *(int *)arg;
     free(arg);
 
     User user;
@@ -69,20 +69,20 @@ void *client_handler(void *arg) {
 
     //Si trop de monde
     if (add_user(&user) < 0) {
-        printf("Serveur plein, connexion refusée pour %s\n", user.nom);
+        printf("Server is full, connection refused fo r %s\n", user.nom);
         close(socketClient);
         pthread_exit(NULL);
     }
 
-    printf("\033[32m%s s'est connecté.\033[0m\n", user.nom);
+    printf("\033[32m%s is connected.\033[0m\n", user.nom);
     //Affichage de la connection à tous les utilisateurs
     char connection_formatted_message[MAX_LEN];
-    int length = snprintf(connection_formatted_message, sizeof(connection_formatted_message), "\033[32m%s: %s s'est connecté.\033[0m\n", "SERVEUR", user.nom);
+    snprintf(connection_formatted_message, sizeof(connection_formatted_message), "\033[32m%s: %s is connected.\033[0m\n", "SERVEUR", user.nom);
     afficher_message(connection_formatted_message);
 
     char buffer[MAX_LEN];
     while (1) {
-        ssize_t bytes_received = recv(socketClient, buffer, sizeof(buffer) - 1, 0);
+        const ssize_t bytes_received = recv(socketClient, buffer, sizeof(buffer) - 1, 0);
         if (bytes_received <= 0) {
             break;
         }
@@ -90,7 +90,7 @@ void *client_handler(void *arg) {
 
         // Créer un message formaté avec une taille suffisante
         char formatted_message[MAX_LEN + sizeof(user.nom) + 10];
-        int formatted_length = snprintf(formatted_message, sizeof(formatted_message), "%s : %s", user.nom, buffer);
+        snprintf(formatted_message, sizeof(formatted_message), "%s : %s", user.nom, buffer);
 
         printf("%s\n", formatted_message);
 
@@ -98,10 +98,10 @@ void *client_handler(void *arg) {
         afficher_message(formatted_message);
     }
 
-    printf("\033[31m%s s'est déconnecté.\033[0m\n", user.nom);
+    printf("\033[31m%s disconnected.\033[0m\n", user.nom);
     //Affichage des messages de déconnection 
     char disconnection_formatted_message[MAX_LEN];
-    int length2 = snprintf(disconnection_formatted_message, sizeof(disconnection_formatted_message), "\033[31m%s : %s s'est déconnecté.\033[0m", "SERVEUR", user.nom);
+    snprintf(disconnection_formatted_message, sizeof(disconnection_formatted_message), "\033[31m%s : %s disconnected.\033[0m", "SERVEUR", user.nom);
     afficher_message(disconnection_formatted_message);
 
     delete_user(socketClient);
@@ -112,9 +112,9 @@ void *client_handler(void *arg) {
 
 
 int main() {
-    int socketServer = socket(AF_INET, SOCK_STREAM, 0);
+    const int socketServer = socket(AF_INET, SOCK_STREAM, 0);
     if (socketServer < 0) {
-        perror("Erreur de création de socket serveur");
+        perror("Error when creating the server socket");
         exit(EXIT_FAILURE);
     }
 
@@ -124,25 +124,27 @@ int main() {
     addrServer.sin_port = htons(30001);
 
     if (bind(socketServer, (struct sockaddr *)&addrServer, sizeof(addrServer)) < 0) {
-        perror("Erreur de liaison (bind)");
+        perror("Binding Error");
         close(socketServer);
         exit(EXIT_FAILURE);
     }
 
     if (listen(socketServer, 10) < 0) {
-        perror("Erreur d'écoute (listen)");
+        perror("Listening Error");
         close(socketServer);
         exit(EXIT_FAILURE);
     }
 
-    printf("En attente de connection.\n");
+    printf("===== Server is open on port 300001 ====");
+    printf("Waiting for connections\n");
 
     while (1) {
         struct sockaddr_in addrClient;
         socklen_t addr_len = sizeof(addrClient);
-        int socketClient = accept(socketServer, (struct sockaddr *)&addrClient, &addr_len);
+        const int socketClient = accept(socketServer, (struct sockaddr *)&addrClient, &addr_len);
+
         if (socketClient < 0) {
-            perror("Erreur d'acceptation");
+            perror("Acceptation Error");
             continue;
         }
 
@@ -153,7 +155,4 @@ int main() {
         pthread_create(&thread, NULL, client_handler, arg);
         pthread_detach(thread);
     }
-
-    close(socketServer);
-    return 0;
 }

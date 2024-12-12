@@ -22,7 +22,7 @@ typedef struct User {
 
 typedef struct {
     char text[MAX_MESSAGE_LENGTH];
-    bool isOwn;  // True if message is from current user
+    bool isOwn;  // True if mes### 5.4 rest TBDsage is from current user
 } ChatMessage;
 
 

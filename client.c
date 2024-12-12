@@ -34,13 +34,13 @@ void set_non_canonical_mode() {
 }
 
 // Fonction pour écouter les messages du serveur
-void *listen_to_server(void *arg) {
+void *listen_to_server() {
     char buffer[MAX_LEN];
     while (1) {
-        ssize_t reception = recv(socketClient, buffer, sizeof(buffer) - 1, 0);
+        const ssize_t reception = recv(socketClient, buffer, sizeof(buffer) - 1, 0);
         if (reception <= 0) {
             clear_line();
-            printf("\nDéconnecté du serveur.\n");
+            printf("\nDisconnected from the server.\n");
             break;
         }
         buffer[reception] = '\0';
@@ -57,17 +57,16 @@ void *listen_to_server(void *arg) {
 
 // Fonction principale pour gérer l'entrée utilisateur
 void handle_user_input() {
-    char ch; // Pour stocker chaque caractère
     while (1) {
         // Lire un caractère à la fois
-        ch = getchar(); //Fonction dispo grâce à STDIO
+        const char ch = getchar(); //Fonction dispo grâce à STDIO
 
         pthread_mutex_lock(&mutex);
         if (ch == '\n') { // Si l'utilisateur appuie sur Entrée
             bufferCurrentMessage[bufferLength] = '\0'; // Terminer le message
             if (bufferLength > 0) {
                 if (send(socketClient, bufferCurrentMessage, bufferLength, 0) < 0) {
-                    perror("Erreur d'envoi");
+                    perror("Error sending message");
                 }
                 bufferLength = 0; // Réinitialiser le buffer
                 memset(bufferCurrentMessage, 0, sizeof(bufferCurrentMessage));
@@ -96,7 +95,7 @@ void handle_user_input() {
 
 // Saisie du nom d'utilisateur
 void saisie_nom(User *user) {
-    printf("Entrez votre nom : ");
+    printf("Enter your name : ");
     fgets(user->nom, sizeof(user->nom), stdin);
     user->nom[strcspn(user->nom, "\n")] = '\0'; // Retirer le \n final
 }
@@ -108,7 +107,7 @@ int main() {
     // Création du socket
     socketClient = socket(AF_INET, SOCK_STREAM, 0);
     if (socketClient < 0) {
-        perror("Erreur de création de socket");
+        perror("Error creating the socket");
         exit(EXIT_FAILURE);
     }
 
@@ -120,14 +119,14 @@ int main() {
 
     // Connexion au serveur
     if (connect(socketClient, (struct sockaddr *)&addrClient, sizeof(addrClient)) < 0) {
-        perror("Erreur de connexion");
+        perror("Connection Error");
         close(socketClient);
         exit(EXIT_FAILURE);
     }
 
     // Envoi du nom d'utilisateur au serveur
     if (send(socketClient, &user, sizeof(user), 0) < 0) {
-        perror("Erreur d'envoi du nom");
+        perror("Error sending the user's name");
         close(socketClient);
         exit(EXIT_FAILURE);
     }
@@ -138,7 +137,7 @@ int main() {
     // Création du thread pour écouter les messages du serveur
     pthread_t listen_thread;
     if (pthread_create(&listen_thread, NULL, listen_to_server, NULL) != 0) {
-        perror("Erreur de création du thread");
+        perror("Error when creating the thread");
         close(socketClient);
         exit(EXIT_FAILURE);
     }
@@ -149,6 +148,6 @@ int main() {
     pthread_join(listen_thread, NULL);
     close(socketClient);
 
-    printf("\nDéconnexion...\n");
+    printf("\nDisconnecting...\n");
     return 0;
 }
