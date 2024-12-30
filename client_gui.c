@@ -56,6 +56,7 @@ User user;  // Store the current user globally
 // Network / Thread related
 int socketClient; // Stores the socket connection identifier for client-server connection
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread-safe access
+pthread_t listen_thread; // Listening thread
 
 // Message storage
 ChatMessage** messages;// Array storing chat history
@@ -130,13 +131,13 @@ CleanedMessage* cleanServerMessage(const char* rawMessage) {
 }
 
 // Function to insert character at cursor position
-void insertCharacter(const char ch) {
+void insertCharacter(const int ch) {
     if (inputBuffer->length < MAX_LEN - 1) {
         // Shift characters right to make room
         for (int i = inputBuffer->length; i > cursorPosition; i--) {
             inputBuffer->buffer[i] = inputBuffer->buffer[i - 1];
         }
-        inputBuffer->buffer[cursorPosition] = ch;
+        inputBuffer->buffer[cursorPosition] = (char)ch;
         inputBuffer->length++;
         cursorPosition++;
     }
@@ -238,7 +239,25 @@ void *listen_to_server() {
         // We show the received message in the UI
         addMessage(buffer, strstr(buffer, user.name) == buffer);  // true if message starts with our name
     }
-    return NULL;
+    // Thread terminates when connection drops or program exits
+    return NULL; // Required for pthread function signature
+}
+
+// Cleanup method, freeing all the possible memory allocations called in this program
+void cleanupAndExit() {
+    CloseWindow();
+    pthread_cancel(listen_thread);
+    pthread_join(listen_thread, NULL);
+    close(socketClient);
+
+    for (int i= 0; i < MAX_MESSAGES; i++) {
+        free(messages[i]->text);
+        free(messages[i]);
+    }
+    free(messages);
+    free(inputBuffer->buffer);
+    free(inputBuffer);
+    exit(EXIT_SUCCESS);
 }
 
 // Function to handle text input
@@ -377,6 +396,11 @@ void handleTextInput() {
     if (IsKeyPressed(KEY_ENTER) && inputBuffer->length > 0) { //checking for empty messages
         inputBuffer->buffer[inputBuffer->length] = '\0'; // null terminator at the end of message buffer
 
+        // Check for the /exit command
+        if (strcmp(inputBuffer->buffer, "/exit") == 0) {
+            cleanupAndExit();
+        }
+
         // Sending message to server with error handling
         if (send(socketClient, inputBuffer->buffer, inputBuffer->length, 0) < 0) {
             addMessage("Error when sending message.", false);
@@ -423,7 +447,6 @@ void drawInputWithCursor() {
     }
 }
 
-
 int main() {
     //User creation
     printf("Enter your name: ");
@@ -438,11 +461,24 @@ int main() {
     for (int i = 0; i < MAX_MESSAGES; i++) {
         messages[i] = malloc(sizeof(ChatMessage));
         messages[i]->text = malloc(MAX_MESSAGE_LENGTH * sizeof(char));
+        if(!messages[i]->text) {
+            perror("Failed to allocated messages' char array");
+            exit(EXIT_FAILURE);
+        }
     }
 
-
     inputBuffer = malloc(sizeof(InputBuffer));
+    if (!inputBuffer) {
+        perror("Failed to allocated inputBuffer's memory");
+        exit(EXIT_FAILURE);
+    }
+
     inputBuffer->buffer = malloc(MAX_LEN * sizeof(char));
+    if (!inputBuffer->buffer) {
+        perror("Failed to allocated inputBuffer's buffer memory");
+        exit(EXIT_FAILURE);
+    }
+
     inputBuffer->length = 0;
     inputBuffer->capacity = MAX_LEN;
 
@@ -474,9 +510,6 @@ int main() {
         close(socketClient);
         exit(EXIT_FAILURE);
     }
-
-    // Server listener thread structure
-    pthread_t listen_thread;
 
     // Creating a thread and calling listen_to_server method
     // If connection fails (return is != 0) then the program exits.
@@ -562,19 +595,7 @@ int main() {
     }
 
     // Cleanup
-    CloseWindow();
-    pthread_cancel(listen_thread);
-    pthread_join(listen_thread, NULL);
-    close(socketClient);
-
-
-    for (int i = 0; i < MAX_MESSAGES; i++) {
-        free(messages[i]->text);
-        free(messages[i]);
-    }
-    free(messages);
-    free(inputBuffer->buffer);
-    free(inputBuffer);
+    cleanupAndExit();
 
     return 0;
 }
