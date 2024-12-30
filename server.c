@@ -118,7 +118,7 @@ void *client_handler(void *arg) {
     printf("\033[31m%s disconnected.\033[0m\n", user.nom);
     //Affichage des messages de déconnection 
     char disconnection_formatted_message[MAX_LEN];
-    snprintf(disconnection_formatted_message, sizeof(disconnection_formatted_message), "\033[31m%s : %s disconnected.\033[0m", "SERVER", user.nom);
+    snprintf(disconnection_formatted_message, sizeof(disconnection_formatted_message), "\033[31m%s: %s disconnected.\033[0m", "SERVER", user.nom);
     afficher_message(disconnection_formatted_message);
 
     delete_user(socketClient);
