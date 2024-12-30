@@ -94,7 +94,7 @@ void *client_handler(void *arg) {
     printf("\033[32m%s is connected.\033[0m\n", user.nom);
     //Affichage de la connection à tous les utilisateurs
     char connection_formatted_message[MAX_LEN];
-    snprintf(connection_formatted_message, sizeof(connection_formatted_message), "\033[32m%s: %s is connected.\033[0m\n", "SERVEUR", user.nom);
+    snprintf(connection_formatted_message, sizeof(connection_formatted_message), "\033[32m%s: %s is connected.\033[0m\n", "SERVER", user.nom);
     afficher_message(connection_formatted_message);
 
     char buffer[MAX_LEN];
