@@ -59,7 +59,7 @@ void store_message(const char *message) {
 }
 
 // Fonction pour diffuser un message à tous les utilisateurs et le stocker
-void afficher_message(const char *message) {
+void diffuse_message(const char *message) {
     // Stockage du message avant la diffusion
     store_message(message);
 
@@ -95,7 +95,7 @@ void *client_handler(void *arg) {
     //Affichage de la connection à tous les utilisateurs
     char connection_formatted_message[MAX_LEN];
     snprintf(connection_formatted_message, sizeof(connection_formatted_message), "\033[32m%s: %s is connected.\033[0m\n", "SERVER", user.nom);
-    afficher_message(connection_formatted_message);
+    diffuse_message(connection_formatted_message);
 
     char buffer[MAX_LEN];
     while (1) {
@@ -112,14 +112,14 @@ void *client_handler(void *arg) {
         printf("%s\n", formatted_message);
 
         // Diffuser le message à tous les utilisateurs et le stocker
-        afficher_message(formatted_message);
+        diffuse_message(formatted_message);
     }
 
     printf("\033[31m%s disconnected.\033[0m\n", user.nom);
     //Affichage des messages de déconnection 
     char disconnection_formatted_message[MAX_LEN];
     snprintf(disconnection_formatted_message, sizeof(disconnection_formatted_message), "\033[31m%s: %s disconnected.\033[0m", "SERVER", user.nom);
-    afficher_message(disconnection_formatted_message);
+    diffuse_message(disconnection_formatted_message);
 
     delete_user(socketClient);
 
